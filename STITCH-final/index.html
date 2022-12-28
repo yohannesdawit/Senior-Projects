@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang = "en">
+	<head>
+		<title>FinalProject</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+
+				color: #61443e;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				background-color: #bfd1e5;
+				padding: 0;
+				margin: 0;
+				overflow: hidden;
+			}
+
+			#menu {
+				position: absolute;
+				top: 20px;
+				width: 100%;
+				text-align: center;
+				padding: 0;
+				margin: 0;
+			}
+			#materials {
+				position: absolute;
+				bottom: 20px;
+				width: 100%;
+				text-align: center;
+				padding: 0;
+				margin: 0;
+			}
+			button {
+				color: rgb(255,255,255);
+				background: transparent;
+				border: 0px;
+				padding: 5px 10px;
+				cursor: pointer;
+			}
+			button:hover {
+				background-color: rgba(0,255,255,0.5);
+			}
+			button:active {
+				color: #000000;
+				background-color: rgba(0,255,255,1);
+			}
+
+		</style>
+
+	</head>
+	<body>
+		<div id="menu"></div>
+		<div id="materials"></div>
+		<div id="container"></div>
+		<script src="MyFiles/floorObject.js"></script>
+		<script src="MyFiles/light.js"></script>
+		<script src="MyFiles/Model.js"></script>
+		<script src="ThreeFiles/stats.min.js"></script>
+		<script src="ThreeFiles/three.js"></script>
+    <script src="ThreeFiles/DDSLoader.js"></script>
+    <script src="ThreeFiles/MTLLoader.js"></script>
+    <script src="ThreeFiles/OBJLoader.js"></script>
+		<script src="ThreeFiles/OrbitControls.js"></script>
+		<script src="ThreeFiles/ammo.js"></script>
+		<script src="ThreeFiles/Reflector.js"></script>
+		<script src="MyFiles/Mirror.js"></script>
+		<script src="MyFiles/AxisHelper.js"></script>
+		<script src="MyFiles/MYOBjects.js"></script>
+		<script src="ThreeFiles/dat.gui.min.js"></script>
+	<script>
+
+
+		//-----------------------------GLOBAL VARIABLES---------------------------\\
+
+		var beach, formal, casual;
+		var mesh2, mesh3, mesh4, mesh5;
+		var tmp;
+		var current_material, effectController;
+		var myObjects;
+		var axis;
+		var mirror;
+		var floorObject;
+		var container, stats;
+		var camera, controls, scene, renderer;
+		var ambientLight;
+		var WIDTH = window.innerWidth;
+		var HEIGHT = window.innerHeight;
+		var root;
+		var mesh, materialStandard, materialNormal;
+		var rdMaterial, gnMaterial, gyMaterial, dnMaterial;
+		var height = 500;
+		var SCALE = 2.436143;
+		var BIAS = - 0.428408;
+		var object;
+		var can = false;
+
+
+		model = new Model();
+		floorObject = new FloorObject();
+		light = new Light();
+		light2 = new Light();
+		mirror = new Mirror();
+		axis = new Axis();
+		myObjects = new MYObjects();
+
+		textureLoader = new THREE.TextureLoader();
+
+		var normalMap = textureLoader.load( "models/Materials/normal.jpg" );
+		var aoMap = textureLoader.load( "models/Materials/ao.jpg" );
+		var displacementMap = textureLoader.load( "models/Materials/symetric.jpg" );
+		var redTexture = textureLoader.load("models/Materials/flowers_1.jpg");
+		var greenTexture = textureLoader.load("models/Materials/green.png");
+		var greyTexture = textureLoader.load("models/Materials/grey.jpg");
+		var denimTexture = textureLoader.load("models/Materials/abstract.jpg");
+
+
+
+
+		var menuContainer = document.getElementById('menu');
+		var materialContainer = document.getElementById('materials');
+
+
+		var materiall = new THREE.MeshLambertMaterial({ color: 0xff6600, reflectivity: 0.3 });
+
+		var MATERIALSS= {
+
+			"white": new THREE.MeshPhongMaterial({color: 0xffffff, reflectivity: 0.3}),
+			"orange": new THREE.MeshPhongMaterial({color: 0xff6600, reflectivity: 0.3}),
+			"red": new THREE.MeshPhongMaterial({map: redTexture, reflectivity: 0.3}),
+			"green": new THREE.MeshPhongMaterial({map: greenTexture, reflectivity: 0.3}),
+			"grey": new THREE.MeshPhongMaterial({map: greyTexture, reflectivity: 0.3}),
+			"denim": new THREE.MeshPhongMaterial({map: denimTexture, reflectivity: 0.3})
+
+		}
+
+		var OBJECTS = {
+
+			"ManObjectContainer": "modeloChino.obj",
+		}
+
+		var params = {
+				Material: 'denim',
+		};
+
+		var params2 = {
+			Beach: false,
+			Formal: false,
+			Casual: false
+		};
+
+
+
+
+		//-----------------------------MAIN CALL FUNCTIONS-----------------------------\\
+
+		init();
+		animate();
+
+
+		//-----------------------------INIT FUNCTIONS-----------------------------\\
+		function init(){
+
+			initGraphics();
+
+			createObjects();
+
+			createMenu();
+
+			initGUI();
+
+		}
+
+		//---------------------------GUI CUSTOMIZABLE CONTROLS---------------------\\
+
+		function initGUI() {
+
+			var gui = new dat.GUI();
+
+			
+
+			var ma = gui.addFolder("Materials");
+
+			var ob = gui.addFolder("Outfits");
+
+			ma.add( params, 'Material', [
+				'standard', 'red', 'green',
+				'grey', 'denim'
+			]);
+
+			beach = ob.add( params2, 'Beach');
+			formal = ob.add( params2, 'Formal');
+			casual = ob.add( params2, 'Casual');
+
+			
+			ma.open();
+			ob.open();
+
+
+			//console.log(beach);
+
+
+		}
+
+		//-----------------------------IMPORTANT FUNCTIONS------------------------\\
+
+		function initGraphics() {
+
+			renderer = new THREE.WebGLRenderer();
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.shadowMap.enabled = true;
+
+			container = document.getElementById( 'container' );
+
+			camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.2, 2000 );
+
+			scene = new THREE.Scene();
+			scene.background = new THREE.Color(000000);
+			scene.fog = new THREE.Fog( 000000, 0, 750 );
+			camera.position.set( 107, 93, 106);
+
+			const loader = new THREE.CubeTextureLoader();
+			const texture = loader.load([
+				'./resources/posx.jpg',
+				'./resources/negx.jpg',
+				'./resources/posy.jpg',
+				'./resources/negy.jpg',
+				'./resources/posz.jpg',
+				'./resources/negz.jpg',
+				
+			]);
+			texture.encoding = THREE.sRGBEncoding;
+			scene.background = texture;
+			
+			
+			//Orbit controls
+			controls();
+
+			//render
+			render();
+
+			container.innerHTML = "";
+			container.appendChild( renderer.domElement );
+
+			//monitor performance
+			monitorPerformance();
+
+			//group
+			root = new THREE.Group();
+			scene.add(root);
+
+
+	    //---------- MATERIALS ---------------------- \\
+			materialStandard = standardMaterial();
+
+		 	rdMaterial = redMaterial();
+
+			gnMaterial = greenMaterial();
+
+			gyMaterial = greyMaterial();
+
+			dnMaterial = denimMaterial();
+
+
+	    // ---------  OBJ LOADER --------------------- \\
+
+			// OBJLoader(45, 0, 50, "models/man.obj" );
+			// model.OBJModelWithoutTexture(45, 0, 50, -4, "models/modeloChino.obj", MATERIALSS.white);
+			model.OBJModelWithTexture(45, 0, 50, -4, "models/modeloChino.obj", MATERIALSS.white);
+
+
+		}
+
+		function animate(){
+			requestAnimationFrame(animate);
+
+			render();
+
+			stats.update();
+
+		}
+
+		function render() {
+
+
+			if(mesh && mesh2 && mesh3 && mesh4 && mesh5){
+
+				// Material change
+				var material = mesh.material;
+				var material2 = mesh2.material;
+				var material3 = mesh3.material;
+				var material4 = mesh4.material;
+				var material5 = mesh5.material;
+
+				switch (params.Material) {
+					case 'standard': material = materialStandard; break;
+					case 'red': material = rdMaterial; break;
+					case 'green': material = gnMaterial; break;
+					case 'grey': material = gyMaterial; break;
+					case 'denim': material = dnMaterial; break;
+
+				}
+
+				switch (params.Material){
+
+					case 'standard': material = materialStandard; break;
+					case 'red': material = rdMaterial; break;
+					case 'green': material = gnMaterial; break;
+					case 'grey': material = gyMaterial; break;
+					case 'denim': material = dnMaterial; break;
+
+				}
+
+				switch (params.Material){
+
+					case 'standard': material = materialStandard; break;
+					case 'red': material = rdMaterial; break;
+					case 'green': material = gnMaterial; break;
+					case 'grey': material = gyMaterial; break;
+					case 'denim': material = dnMaterial; break;
+				}
+
+				switch (params.Material){
+
+					case 'standard': material = materialStandard; break;
+					case 'red': material = rdMaterial; break;
+					case 'green': material = gnMaterial; break;
+					case 'grey': material = gyMaterial; break;
+					case 'denim': material = dnMaterial; break;
+
+				}
+
+				switch (params.Material){
+
+					case 'standard': material = materialStandard; break;
+					case 'red': material = rdMaterial; break;
+					case 'green': material = gnMaterial; break;
+					case 'grey': material = gyMaterial; break;
+					case 'denim': material = dnMaterial; break;
+
+				}
+
+
+
+				mesh5.material = material5
+				mesh4.material = material4;
+				mesh3.material = material3;
+				mesh2.material = material2;
+				mesh.material = material;
+
+				//----------------------------------------------------------------------
+
+				// Outfit selection
+				if (params2.Beach == true){
+
+					mesh.visible = true;
+					mesh2.visible = true;
+
+					mesh3.visble = false;
+					mesh4.visible = false;
+					mesh5.visible = false;
+
+				} else if (params2.Casual == true){
+
+					mesh.visible = false;
+					mesh2.visible = false;
+
+					mesh3.visible = true;
+
+					mesh4.visible = false;
+					mesh5.visible = false;
+
+				}else if(params2.Formal == true){
+
+
+					mesh.visible = false;
+					mesh2.visible = false;
+					mesh3.visible = false;
+
+					mesh4.visible = true;
+					mesh5.visible = true;
+				}else {
+					mesh.visible = false;
+					mesh2.visible = false;
+
+					mesh3.visible = false;
+
+					mesh4.visible = false;
+					mesh5.visible = false;
+
+				}
+
+			}
+
+			renderer.render(scene, camera);
+
+
+		}
+
+		function monitorPerformance() {
+			stats = new Stats();
+			stats.domElement.style.position = 'absolute';
+			stats.domElement.style.top = '0px';
+			container.appendChild( stats.domElement );
+			window.addEventListener( 'resize', onWindowResize, false );
+		}
+
+		function onWindowResize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		//-----------------------------CONTROLS FUNCTIONS-------------------------\\
+
+		function controls() {
+			controls = new THREE.OrbitControls( camera , renderer.domElement);
+			controls.target.set( 0, 2, 0 );
+			controls.enableZoom = true;
+			controls.update();
+
+		}
+
+		//-----------------------------OBJECTS FUNCTIONS--------------------------\\
+
+		function createObjects() {
+
+
+			// X red, Y green, Z blue
+			//axis.show(200);
+
+			// creamos piso con textura de grid.png
+			floorObject.show(20,20,10,100);
+
+
+			//creamos una luz tipo spotLight
+			spotLight = light.spotLight();
+
+			// creamos una luz tipo pointLight
+			pointLight = light2.pointLight();
+			pointLight.position.set(50,150,10);
+			pointLight.distance = 310;
+
+			//AmbientLight
+			ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+	    	ambientLight.position.set(0,10,0);
+			ambientLight.intensity = 0.5;
+			scene.add(ambientLight);
+
+			// mirror object
+			// mirror.groundMirror(1000, 1000, 50, 50, 0);
+			mirror.groundMirror(window.innerWidth, window.innerHeight, 50, 1, 50).rotateX(- Math.PI / 2);
+
+
+			//model.OBJModelWithoutTexture(45, 0, 50, 13, "models/man.obj");
+			//OBJLoader(41, 6, 46.5, "models/WorkoutShorts.OBJ", "shorts");
+			//customOBJLoader(44, 4.2, 48.8, "models/BetterShirt.obj", 15, "shirt");
+
+			//OUTFIT MODELS CALL
+
+			OBJLoaderOutfit("models/pantalonetaPlaya.obj","models/camisilla.obj", "models/ropaCasual.obj","models/chaleco.obj", "models/pantalonn.obj","Beach");
+			OBJLoaderOutfit("models/pantalonetaPlaya.obj","models/camisilla.obj", "models/ropaCasual.obj","models/chaleco.obj", "models/pantalonn.obj","Casual");
+			OBJLoaderOutfit("models/pantalonetaPlaya.obj","models/camisilla.obj", "models/ropaCasual.obj","models/chaleco.obj", "models/pantalonn.obj","Formal");
+		}
+
+
+		//---------------------------GENERAL MENU FUNCTIONS------------------------\\
+
+		function modelName() {
+			var name = scene.children[0].children[0].children[0].name
+			return name;
+		}
+
+		function generateModelButtonCallBack( url ) {
+
+			modell = new Model();
+
+
+			return function ( event ) {
+
+				var name = modelName();
+
+				if (name == "default"){
+					model.OBJModelWithoutTexture(45, 0, 50, 4, url,MATERIALSS.white);
+				}else {
+					model.OBJModelWithoutTexture(45, 0, 50, -4, url,MATERIALSS.white);
+				}
+
+			}
+		}
+
+		function ModelMaterialButtonCallBack( mat ) {
+
+			modell = new Model();
+
+			return function ( event ) {
+
+				var name = modelName();
+
+				var url1 = "models/"+ "modeloChino.obj";
+
+
+				if ( name  == "default") {
+					console.log(name);
+
+					modell.OBJModelWithoutTexture(45, 0, 50, -4, url1, mat);
+
+				}else  if (name == "Form0"){
+
+					console.log(name);
+
+					modell.OBJModelWithTexture(45, 0, 50, 4, url2, mat);
+				}else{
+					console.log(name);
+				}
+
+			}
+
+		}
+
+		function createMenu() {
+
+
+			for (var m in OBJECTS) {
+
+				var button = document.createElement('button');
+				button.innerHTML = m;
+
+				menuContainer.appendChild(button);
+
+				var url = 'models/' + OBJECTS[m];
+
+				button.addEventListener('click', generateModelButtonCallBack(url, false));
+
+
+			}
+
+			// for(var i in MATERIALSS){
+
+			// 	var button2 = document.createElement('button');
+
+			// 	button2.innerHTML = i;
+
+			// 	materialContainer.appendChild(button2);
+
+			// 	var materialB = MATERIALSS[i];
+
+			// 		button2.addEventListener('click', ModelMaterialButtonCallBack( materialB), false);
+
+			// }
+
+		}
+
+		//---------------------------MATERIALS FUNCTIONS--------------------------\\
+
+		function standardMaterial() {
+
+			var standardMaterial;
+			standardMaterial = new THREE.MeshStandardMaterial( {
+				color: 0000000,
+				metalness: 0.5,
+				roughness: 0.6,
+				//displacementMap: displacementMap,
+				displacementScale: SCALE,
+				displacementBias: BIAS,
+				aoMap: aoMap,
+				normalMap: normalMap,
+				normalScale: new THREE.Vector2( 1, - 1 ),
+				//flatShading: true,
+				side: THREE.DoubleSide
+			} );
+
+			return standardMaterial;
+
+		}
+
+
+		function redMaterial() {
+
+			var redMaterial;
+			redMaterial = new THREE.MeshPhongMaterial( {
+
+				displacementScale: SCALE,
+				displacementBias: BIAS,
+				normalMap: normalMap,
+				normalScale: new THREE.Vector2( 1, - 1 ),
+				//flatShading: true,
+				side: THREE.DoubleSide,
+				map: redTexture
+			} );
+
+			return redMaterial;
+
+		}
+
+		function greenMaterial() {
+
+			var greenMaterial;
+			greenMaterial = new THREE.MeshPhongMaterial( {
+				map: greenTexture,
+				reflectivity: 0.3
+			} );
+
+			return greenMaterial;
+		}
+
+		function greyMaterial(){
+
+			var greyMaterial;
+			greyMaterial = new THREE.MeshPhongMaterial({
+				map: greyTexture,
+				reflectivity: 0.3
+			});
+
+			return greyMaterial;
+
+		}
+
+		function denimMaterial(){
+
+			var denimMaterial;
+			denimMaterial = new THREE.MeshPhongMaterial({
+				map: denimTexture,
+				reflectivity: 0.3
+			});
+
+			return denimMaterial;
+
+		}
+
+		//---------------------------MODEL LOADER FUNCTIONS-----------------------\\
+
+		function OBJLoader(x, y , z, path, name){
+
+			// while (root.children.length > 0){
+			//
+	    //   var object = root.children[0];
+	    //   object.parent.remove( object );
+	    // }
+
+			var objLoader = new THREE.OBJLoader();
+			objLoader.load(path, function(group){
+
+				var geometry = group.children[ 0 ].geometry;
+				geometry.attributes.uv2 = geometry.attributes.uv;
+
+				mesh = new THREE.Mesh( geometry, materialNormal );
+
+				mesh.scale.multiplyScalar( 0.5 );
+				mesh.position.set(x, y, z);
+				mesh.rotation.y = Math.PI / 4;
+				//root.add( mesh );
+				scene.add( mesh );
+
+				mesh.name = name;
+
+
+				//tmp = mesh;
+
+				//console.log(mesh.name);
+
+				//console.log(mesh);
+
+			});
+
+
+
+
+		}
+
+		function customOBJLoader(x, y, z, path, scalar, name ) {
+
+			// while (root.children.length > 0){
+			//
+			// 	var object = root.children[0];
+			// 	object.parent.remove( object );
+			// }
+
+
+			var objLoader = new THREE.OBJLoader();
+			objLoader.load(path, function(group){
+
+				var geometry = group.children[ 0 ].geometry;
+				geometry.attributes.uv2 = geometry.attributes.uv;
+
+				mesh = new THREE.Mesh( geometry, materialNormal );
+
+				mesh.scale.multiplyScalar( scalar );
+				mesh.position.set(x, y, z);
+				mesh.rotation.y = Math.PI / 4;
+				mesh.name = "shirt";
+
+				console.log(mesh.name);
+				//root.add( mesh );
+				scene.add( mesh );
+			});
+		}
+
+		function OBJLoaderOutfit( beachPath, beachPath2, casualPath, formalPath, formalPath2, name) {
+
+			if (name == "Beach"){
+
+				// First Outfit Model
+				var objLoader = new THREE.OBJLoader();
+				objLoader.load(beachPath, function(group){
+
+					var geometry = group.children[ 0 ].geometry;
+					geometry.attributes.uv2 = geometry.attributes.uv;
+
+
+					mesh = new THREE.Mesh( geometry, materialNormal );
+
+					mesh.scale.multiplyScalar( 0.5 );
+					mesh.position.set(45, -3, 50);
+					mesh.rotation.y = Math.PI / -4;
+					//root.add( mesh );
+					scene.add( mesh );
+
+				});
+
+				var objLoader2 = new THREE.OBJLoader();
+				objLoader2.load(beachPath2, function(group2){
+
+					var geometry2 = group2.children[ 0 ].geometry;
+					geometry2.attributes.uv2 = geometry2.attributes.uv;
+
+					mesh2 = new THREE.Mesh( geometry2, materialNormal );
+
+					mesh2.scale.multiplyScalar( 0.5 );
+					mesh2.position.set(45, -7, 50);
+					mesh2.rotation.y = Math.PI / -4;
+					//mesh.name = "shirt";
+
+					//root.add( mesh );
+					scene.add( mesh2);
+				});
+
+			}else if (name == "Casual"){
+
+				// First Outfit Model
+				var objLoader3 = new THREE.OBJLoader();
+				objLoader3.load(casualPath, function(group3){
+
+					var geometry3 = group3.children[ 0 ].geometry;
+					geometry3.attributes.uv2 = geometry3.attributes.uv;
+
+
+					mesh3 = new THREE.Mesh( geometry3, materialNormal );
+
+					mesh3.scale.multiplyScalar( 0.5 );
+					mesh3.position.set(45, 0.5, 50);
+					mesh3.rotation.y = Math.PI / -4;
+					//root.add( mesh );
+					scene.add( mesh3 );
+
+				});
+
+
+			}else if (name == "Formal"){
+
+
+				var objLoader4 = new THREE.OBJLoader();
+				objLoader4.load(formalPath, function(group4){
+
+					var geometry4 = group4.children[ 0 ].geometry;
+					geometry4.attributes.uv2 = geometry4.attributes.uv;
+
+
+					mesh4 = new THREE.Mesh( geometry4, materialNormal );
+
+					mesh4.scale.multiplyScalar( 0.5 );
+					mesh4.position.set(45.6, 8, 50.6);
+					mesh4.rotation.y = Math.PI / 4;
+					//root.add( mesh );
+					scene.add( mesh4 );
+
+				});
+
+				var objLoader5 = new THREE.OBJLoader();
+				objLoader5.load(formalPath2, function(group5){
+
+					var geometry5 = group5.children[ 0 ].geometry;
+					geometry5.attributes.uv2 = geometry5.attributes.uv;
+
+
+					mesh5 = new THREE.Mesh( geometry5, materialNormal );
+
+					mesh5.scale.multiplyScalar( 0.5 );
+					mesh5.position.set(46, -2, 51);
+					mesh5.rotation.y = Math.PI / 4;
+					//root.add( mesh );
+					scene.add( mesh5 );
+
+				});
+
+			}else{
+
+				mesh.visible = false;
+				mesh2.visible = false;
+				mesh3.visible = false;
+				mesh4.visible = false;
+				mesh5.visible = false;
+
+			}
+		}
+
+
+		//-----------------------------------------------------------------------\\
+	</script>
+
+
+	</body>
+</html>
